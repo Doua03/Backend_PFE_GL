@@ -1,4 +1,5 @@
 const Parking = require('../model/parking.model');
+const { ParkingGroup } = require('../services/parkingComposite');
 const supervisorModel = require('../model/supervisor');
 const adminModel = require('../model/admin');
 const SupervisorService = require("../services/supervisor.services");
@@ -181,12 +182,14 @@ exports.getParkingsNearby = async (req, res) => {
 exports.getParkingPlaces = async (req, res) => {
   try {
     const parkingId = req.params.parkingId;
-    const parking = await Parking.findById(parkingId);
-    if (!parking) {
+    const parkingDoc = await Parking.findById(parkingId);
+    if (!parkingDoc) {
       return res.status(404).json({ error: 'Parking not found' });
     }
 
-    const places = parking.floors.flatMap(floor => floor.places);
+    const parkingGroup = new ParkingGroup(parkingDoc);
+    const places = parkingGroup.getAllPlaces();
+    
     res.status(200).json(places);
   } catch (error) {
     console.error(error);
@@ -197,12 +200,13 @@ exports.getParkingPlaces = async (req, res) => {
 exports.getParkingFloors = async (req, res) => {
   try {
     const parkingId = req.params.parkingId;
-    const parking = await Parking.findById(parkingId);
-    if (!parking) {
+    const parkingDoc = await Parking.findById(parkingId);
+    if (!parkingDoc) {
       return res.status(404).json({ error: 'Parking not found' });
     }
 
-    res.status(200).json({ floors: parking.floors });
+    const parkingGroup = new ParkingGroup(parkingDoc);
+    res.status(200).json({ floors: parkingGroup.getFloors() });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal server error' });
