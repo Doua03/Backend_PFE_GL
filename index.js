@@ -27,45 +27,46 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-app.post('/send-email', (req, res) => {
-  const { email, password } = req.body;
-  const mailOptions = {
-    from: 'benameur808@gmail.com',
-    to: email,
-    subject: 'Votre mot de passe',
-    text: `Cher(e) garde,\n Vous avez été ajouté à notre plateforme. Voici vos informations de connexion :\n Votre adresse e-mail: ${email}\nVotre mot de passe est : ${password}\nCordialement,`,
-  };
+const { EmailNotifier } = require('./services/notifier.service');
+const { SocketNotifierDecorator, LoggingNotifierDecorator } = require('./decorators/notifier.decorators');
 
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error(error);
-      res.status(500).send("Erreur lors de l'envoi de l'e-mail");
-    } else {
-      console.log('Email envoyé: ' + info.response);
-      res.status(200).send('E-mail envoyé avec succès');
-    }
-  });
+app.post('/send-email', async (req, res) => {
+  const { email, password } = req.body;
+  const message = `Cher(e) garde,\n Vous avez été ajouté à notre plateforme. Voici vos informations de connexion :\n Votre adresse e-mail: ${email}\nVotre mot de passe est : ${password}\nCordialement,`;
+  const subject = 'Votre mot de passe';
+
+  try {
+    let notifier = new EmailNotifier();
+    notifier = new SocketNotifierDecorator(notifier, io);
+    notifier = new LoggingNotifierDecorator(notifier);
+
+    await notifier.send(email, subject, message);
+    res.status(200).send('Notification multi-canal envoyée avec succès');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Erreur lors de l'envoi de la notification");
+  }
 });
 
-app.post('/send', (req, res) => {
+app.post('/send', async (req, res) => {
   const { email, password } = req.body;
-  const mailOptions = {
-    from: 'benameur808@gmail.com',
-    to: email,
-    subject: 'Votre mot de passe',
-    text: `Cher(e) Gestionnaire de parking,\n\n Vous avez été ajouté à notre plateforme.\n\n Voici vos informations de connexion :\n Votre adresse e-mail: ${email}\nVotre mot de passe est : ${password}\n\nCordialement,`,
-  };
+  const message = `Cher(e) Gestionnaire de parking,\n\n Vous avez été ajouté à notre plateforme.\n\n Voici vos informations de connexion :\n Votre adresse e-mail: ${email}\nVotre mot de passe est : ${password}\n\nCordialement,`;
+  const subject = 'Votre mot de passe';
 
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error(error);
-      res.status(500).send("Erreur lors de l'envoi de l'e-mail");
-    } else {
-      console.log('Email envoyé: ' + info.response);
-      res.status(200).send('E-mail envoyé avec succès');
-    }
-  });
+  try {
+    let notifier = new EmailNotifier();
+    notifier = new SocketNotifierDecorator(notifier, io);
+    notifier = new LoggingNotifierDecorator(notifier);
+
+    await notifier.send(email, subject, message);
+    res.status(200).send('Notification multi-canal envoyée avec succès');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Erreur lors de l'envoi de la notification");
+  }
 });
+
+
 
 let connectedUsers = {};
 
