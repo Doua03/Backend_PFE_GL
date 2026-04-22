@@ -1,16 +1,9 @@
 const License = require('../model/license');
+const LicenseFactory = require('../services/licenseFactory');
 
 exports.addLicense = async (req, res) => {
   try {
-    const { name, type, user, price, period, description } = req.body;
-    const license = new License({
-      name,
-      type,
-      user,
-      price,
-      period,
-      description
-    });
+    const license = LicenseFactory.createLicense(req.body);
     await license.save();
     res.status(201).json({ message: 'License added successfully' });
   } catch (error) {
