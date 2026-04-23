@@ -1,60 +1,44 @@
 const express = require('express');
-const router = express.Router(); // Utilisez router pour définir les routes
-const UserController = require("../controller/user.controller");
+const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 
-// Définir le dossier de destination pour les fichiers uploadés
+const AuthController       = require("../controller/AuthController");
+const ProfileController    = require("../controller/ProfileController");
+const VehicleController    = require("../controller/VehicleController");
+const CreditCardController = require("../controller/CreditCardController");
+
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    // Extraire l'extension du fichier d'origine
+  destination: function (req, file, cb) { cb(null, 'uploads/'); },
+  filename:    function (req, file, cb) {
     const ext = path.extname(file.originalname);
-    // Générer un nom de fichier unique avec l'extension
     cb(null, file.fieldname + '-' + Date.now() + ext);
   }
 });
-const upload = multer({ storage: storage,});
+const upload = multer({ storage });
 
-router.post('/registration', UserController.register);
-router.get('/verify-email', UserController.verifyEmail);
-router.post('/login', UserController.login);
-router.post('/reset-password', UserController.resetPassword);
-router.put('/update', UserController.updateUser);
-router.delete('/delete_account', UserController.deleteAccount);
-router.post('/add-vehicle', UserController.addVehicle);
-router.post('/uploadImage', upload.single('image'), UserController.uploadImage);
-router.get('/get-vehicle', (req, res) => {
-  const { userId } = req.query; // Utilisez req.query pour récupérer l'ID de l'utilisateur
-  UserController.getUserVehicles(req, res, userId);
-});
-router.delete('/delete-vehicle', (req, res) => {
-  const { userId, num } = req.query; // Récupérer userId et num des paramètres de l'URL
-  UserController.deleteVehicle(req, res, userId, num); // Appeler la fonction de contrôleur avec les paramètres
-});
-router.get('/all', UserController.list); // Route pour récupérer tous les utilisateurs
-router.delete('/delete/:userId', UserController.delete);
+// Auth
+router.post('/registration',   AuthController.register);
+router.get('/verify-email',    AuthController.verifyEmail);
+router.post('/login',          AuthController.login);
+router.post('/reset-password', AuthController.resetPassword);
 
-router.post('/addCard', UserController.addCreditCard);
+// Profile
+router.put('/update',              ProfileController.updateUser);
+router.delete('/delete_account',   ProfileController.deleteAccount);
+router.post('/uploadImage', upload.single('image'), ProfileController.uploadImage);
+router.get('/all',                 ProfileController.list);
+router.delete('/delete/:userId',   ProfileController.delete);
+router.get('/user/count',          ProfileController.getUserCount);
 
-router.get('/getCard', (req, res) => {
-  const { userId } = req.query; // Utilisez req.query pour récupérer l'ID de l'utilisateur
-  UserController.getUserCreditCard(req, res, userId);
-});
-router.delete('/deleteCard', (req, res) => {
-  const { userId, cardNumber } = req.query; // Récupérer userId et num des paramètres de l'URL
-  UserController.deleteCreditCard(req, res, userId, cardNumber); // Appeler la fonction de contrôleur avec les paramètres
-});
-router.get('/user/count', UserController.getUserCount);
+// Vehicles
+router.post('/add-vehicle',    VehicleController.addVehicle);
+router.get('/get-vehicle',     VehicleController.getUserVehicles);
+router.delete('/delete-vehicle', VehicleController.deleteVehicle);
 
+// Credit Cards
+router.post('/addCard',        CreditCardController.addCreditCard);
+router.get('/getCard',         CreditCardController.getUserCreditCard);
+router.delete('/deleteCard',   CreditCardController.deleteCreditCard);
 
-
-
-
-
-
-
-// Exportez router pour l'utiliser dans votre fichier principal
 module.exports = router;
