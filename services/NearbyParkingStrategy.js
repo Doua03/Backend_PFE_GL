@@ -1,5 +1,6 @@
 const Parking = require('../model/parking.model');
 const ParkingStrategy = require('./ParkingStrategy');
+const ParkingFactory = require('./parking.factory');
 
 class NearbyParkingStrategy extends ParkingStrategy {
   async execute({ lat, lng, limit = 5 }) {
@@ -40,5 +41,8 @@ class NearbyParkingStrategy extends ParkingStrategy {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 }
+
+// Self-registration — OCP applied
+ParkingFactory.register('lat', NearbyParkingStrategy);
 
 module.exports = NearbyParkingStrategy;

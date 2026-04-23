@@ -1,6 +1,7 @@
 const Parking = require('../model/parking.model');
 const adminModel = require('../model/admin');
 const ParkingStrategy = require('./ParkingStrategy');
+const ParkingFactory = require('./parking.factory');
 
 class ByAdminEmailStrategy extends ParkingStrategy {
   async execute({ adminEmail }) {
@@ -16,5 +17,6 @@ class ByAdminEmailStrategy extends ParkingStrategy {
     return await Parking.find({ admin: adminUser.email });
   }
 }
-
+// strategies/ByAdminEmailStrategy.js
+ParkingFactory.register('adminEmail', ByAdminEmailStrategy);
 module.exports = ByAdminEmailStrategy;

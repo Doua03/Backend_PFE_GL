@@ -1,5 +1,6 @@
 const Parking = require('../model/parking.model');
 const ParkingStrategy = require('./ParkingStrategy');
+const ParkingFactory = require('./ParkingFactory');
 
 class SearchByNameStrategy extends ParkingStrategy {
   async execute({ name }) {
@@ -13,4 +14,5 @@ class SearchByNameStrategy extends ParkingStrategy {
   }
 }
 
+ParkingFactory.register('name', SearchByNameStrategy);
 module.exports = SearchByNameStrategy;

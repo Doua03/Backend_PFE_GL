@@ -1,6 +1,7 @@
 const Parking = require('../model/parking.model');
 const supervisorModel = require('../model/supervisor');
 const ParkingStrategy = require('./ParkingStrategy');
+const ParkingFactory = require('./parking.factory');
 
 class BySupervisorStrategy extends ParkingStrategy {
   async execute({ supervisorId }) {
@@ -17,4 +18,5 @@ class BySupervisorStrategy extends ParkingStrategy {
   }
 }
 
+ParkingFactory.register('supervisorId', BySupervisorStrategy);
 module.exports = BySupervisorStrategy;
