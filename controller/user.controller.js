@@ -1,5 +1,8 @@
 const UserService = require("../services/user.services");
+const UserServiceProxy = require("../services/UserServiceProxy");
 const nodemailer = require('nodemailer');
+
+const userProxy = new UserServiceProxy();
 const bcrypt = require('bcrypt');
 const UserModel = require('../model/user.model');
 const Parking = require('../model/parking.model'); // Import Parking model
@@ -239,26 +242,23 @@ exports.deleteVehicle = async (req, res) => {
 };
 exports.list = async (req, res) => {
   try {
-      const user = await UserModel.find({}).exec();
-      res.json(user);
+    const users = await userProxy.listUsers(req.headers.authorization);
+    res.json(users);
   } catch (error) {
-      console.error("Error while fetching admins:", error);
-      res.status(500).json({ error: "Internal server error" });
+    if (error.status) return res.status(error.status).json({ error: error.message });
+    console.error("Error while fetching users:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
+
 exports.delete = async (req, res) => {
   try {
-      if (!ObjectId.isValid(req.params.userId))
-          return res.status(400).send(`No record with given id : ${req.params.userId}`);
-
-      const deletedUser = await UserModel.findOneAndDelete({ _id: req.params.userId });
-      if (!deletedUser) {
-          return res.status(404).send(`User not found with ID: ${req.params.userId}`);
-      }
-      res.json(deletedUser);
+    const deleted = await userProxy.deleteUser(req.params.userId, req.headers.authorization);
+    res.json(deleted);
   } catch (error) {
-      console.error("Error while deleting user:", error);
-      res.status(500).json({ error: "Internal server error" });
+    if (error.status) return res.status(error.status).json({ error: error.message });
+    console.error("Error while deleting user:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
