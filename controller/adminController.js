@@ -1,9 +1,10 @@
 const jwt = require('jsonwebtoken');
-const Admin = require('../model/admin');
+const adminRepository = require('../repositories/admin.repository');
 const config = require('../config/config');
 const ObjectId = require('mongoose').Types.ObjectId;
-const supervisorModel = require('../model/supervisor');
+const supervisorRepository = require('../repositories/supervisor.repository');
 const SupervisorService = require("../services/supervisor.services");
+
 // Login Admin
 exports.logina = async (req, res, next) => {
     try {
@@ -13,7 +14,8 @@ exports.logina = async (req, res, next) => {
             return res.status(422).send({ error: "Must provide email, password, and userType" });
         }
 
-        const user = await Admin.findOne({ email });
+        const user = await adminRepository.findByEmail(email);
+
 
         if (!user) {
             return res.status(422).send({ error: "Invalid email or password" });
@@ -38,7 +40,8 @@ exports.logina = async (req, res, next) => {
 // List Admins for superadmin
 exports.list = async (req, res) => {
     try {
-        const admins = await Admin.find({}).exec();
+        const admins = await adminRepository.findAll();
+
         res.json(admins);
     } catch (error) {
         console.error("Error while fetching admins:", error);
@@ -72,13 +75,15 @@ try {
     }
 
     // Assuming the supervisor model is correctly set up to find a supervisor by their ID
-    const supervisor = await supervisorModel.findById(userId);
+    const supervisor = await supervisorRepository.findById(userId);
+
     if (!supervisor) {
       return res.status(404).json({ message: 'Supervisor not found' });
     }
 
     // Assuming you have a method to get admins by supervisor ID
-    const admins = await Admin.find({ supervisor: userId });
+    const admins = await adminRepository.findAll({ supervisor: userId });
+
     res.status(200).json(admins);
 } catch (error) {
     console.error("Error while fetching admins:", error);
@@ -92,11 +97,12 @@ exports.delete = async (req, res) => {
         if (!ObjectId.isValid(req.params.id))
             return res.status(400).send(`No record with given id : ${req.params.id}`);
 
-        const deletedAdmin = await Admin.findOneAndDelete({ _id: req.params.id });
+        const deletedAdmin = await adminRepository.delete(req.params.id);
         if (!deletedAdmin) {
             return res.status(404).send(`Admin not found with ID: ${req.params.id}`);
         }
         res.json(deletedAdmin);
+
     } catch (error) {
         console.error("Error while deleting admin:", error);
         res.status(500).json({ error: "Internal server error" });
@@ -109,7 +115,8 @@ exports.updateAdmin = async (req, res) => {
     const { name, telephone, entreprise, postcode, job} = req.body;
 
     try {
-        const admin = await Admin.findById(adminId);
+        const admin = await adminRepository.findById(adminId);
+
         if (!admin) {
             return res.status(404).send('Admin not found');
         }
@@ -134,7 +141,8 @@ exports.modifyLicense = async (req, res) => {
   const { type, period, price} = req.body;
 
   try {
-    const admin = await Admin.findById(adminId);
+    const admin = await adminRepository.findById(adminId);
+
     if (!admin) {
       return res.status(404).send('Admin not found');
     }
@@ -159,7 +167,8 @@ exports.getadmin = async (req, res) => {
   console.log('Searching for admin with email:', email);
 
   try {
-    const admin = await Admin.findOne({ email });
+    const admin = await adminRepository.findByEmail(email);
+
     console.log('Admin found:', admin);
     
     if (!admin) {
@@ -173,7 +182,8 @@ exports.getadmin = async (req, res) => {
 };
 exports.getAdminCount = async (req, res) => {
   try {
-    const AdminCount = await Admin.countDocuments();
+    const AdminCount = await adminRepository.count();
+
     res.status(200).json({ AdminCount });
   } catch (error) {
     console.error(error);
@@ -186,7 +196,8 @@ exports.getAdminById = async (req, res) => {
   const adminId = req.params.id; // Updated to use "id" instead of "adminId"
 console.log(adminId);
   try {
-    const admin = await Admin.findById(adminId);
+    const admin = await adminRepository.findById(adminId);
+
     
     if (!admin) {
       return res.status(404).json({ error: 'Admin not found' });
@@ -200,18 +211,12 @@ console.log(adminId);
 };
 exports.calculateTotalLicensePrice = async (req, res) => {
   try {
-    const admins = await Admin.find({}); // Récupère tous les administrateurs
-    const totalPrice = admins.reduce((sum, admin) => {
-      if (admin.license && admin.license.price) {
-        return sum + admin.license.price; // Ajoute le prix de la licence si elle existe
-      }
-      return sum;
-    }, 0);
-    
+    const totalPrice = await adminRepository.calculateTotalLicensePrice();
     res.status(200).json({ totalPrice });
   } catch (error) {
     console.error('Error while calculating total license price:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 

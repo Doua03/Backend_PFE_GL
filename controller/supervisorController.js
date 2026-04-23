@@ -1,9 +1,9 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const Supervisor = require('../model/supervisor');
+const supervisorRepository = require('../repositories/supervisor.repository');
 const config = require('../config/config');
-const supervisorModel = require('../model/supervisor');
 const ObjectId = require('mongoose').Types.ObjectId;
+
 
 // Supervisor Login
 exports.logins = async (req, res) => {
@@ -16,7 +16,8 @@ exports.logins = async (req, res) => {
         }
 
         // Find the supervisor based on email
-        const supervisor = await Supervisor.findOne({ email });
+        const supervisor = await supervisorRepository.findByEmail(email);
+
 
         // If supervisor not found or user type is not matching, return error
         if (!supervisor || supervisor.session !== userType) {
@@ -43,7 +44,8 @@ exports.logins = async (req, res) => {
 // List all Supervisors
 exports.listSupervisors = async (req, res) => {
   try {
-      const supervisors = await Supervisor.find({});
+      const supervisors = await supervisorRepository.findAll();
+
       res.json(supervisors);
   } catch (err) {
       console.error("Error while fetching supervisors:", err);
@@ -61,15 +63,14 @@ exports.addSupervisor = async (req, res) => {
         return res.status(422).send({ error: "Must provide email and password" });
     }
 
-    const supervisor = new Supervisor({
+    const supervisor = await supervisorRepository.create({
       email,
       password,
-      session: 'Supervisor' // Set the session to 'Supervisor' by default
+      session: 'Supervisor'
     });
 
-    await supervisor.save();
-
     res.status(201).send(supervisor);
+
   } catch (error) {
     console.error("Error while adding supervisor:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -81,7 +82,8 @@ exports.getSupervisorById = async (req, res) => {
   const supervisorId = req.params.id;
 
   try {
-    const supervisor = await Supervisor.findById(supervisorId).exec();
+    const supervisor = await supervisorRepository.findById(supervisorId);
+
 
     if (!supervisor) {
       return res.status(404).json({ error: 'Supervisor not found' });
@@ -102,7 +104,8 @@ exports.deleteSupervisorById = async (req, res) => {
   }
 
   try {
-      const deletedSupervisor = await Supervisor.findOneAndDelete({ _id: req.params.id });
+      const deletedSupervisor = await supervisorRepository.delete(req.params.id);
+
       
       if (!deletedSupervisor) {
           return res.status(404).send(`Supervisor not found with ID: ${req.params.id}`);
@@ -122,7 +125,8 @@ exports.updateSupervisor = async (req, res) => {
   const { name, telephone, municipality, postcode, jobpost } = req.body;
   console.log('Request Body:', req.body);
   try {
-    const supervisor = await Supervisor.findById(supervisorId);
+    const supervisor = await supervisorRepository.findById(supervisorId);
+
     if (!supervisor) {
       return res.status(404).send('Supervisor not found');
     }
@@ -145,7 +149,8 @@ exports.updateSupervisor = async (req, res) => {
 
 exports.getSupervisorCount = async (req, res) => {
   try {
-    const supervisorCount = await Supervisor.countDocuments();
+    const supervisorCount = await supervisorRepository.count();
+
     res.status(200).json({ supervisorCount });
   } catch (error) {
     console.error(error);
@@ -160,7 +165,8 @@ exports.listSupervisors = async (req, res) => {
       if (name) {
           query = { name: { $regex: name, $options: 'i' } }; // Case-insensitive search
       }
-      const supervisors = await Supervisor.find(query);
+      const supervisors = await supervisorRepository.findAll(query);
+
       res.json(supervisors);
   } catch (err) {
       console.error("Error while fetching supervisors:", err);
@@ -173,7 +179,8 @@ exports.modifyLicense = async (req, res) => {
   const { type, period, price} = req.body;
 
   try {
-    const supervisor = await Supervisor.findById(supervisorId);
+    const supervisor = await supervisorRepository.findById(supervisorId);
+
     if (!supervisor) {
       return res.status(404).send('Supervisor not found');
     }
@@ -194,14 +201,7 @@ exports.modifyLicense = async (req, res) => {
 
 exports.calculateTotalLicensePrice = async (req, res) => {
   try {
-    const supervisors = await Supervisor.find({}); // Récupère tous les administrateurs
-    const totalPrice = supervisors.reduce((sum, supervisor) => {
-      if (supervisor.license && supervisor.license.price) {
-        return sum + supervisor.license.price; // Ajoute le prix de la licence si elle existe
-      }
-      return sum;
-    }, 0);
-    
+    const totalPrice = await supervisorRepository.calculateTotalLicensePrice();
     res.status(200).json({ totalPrice });
   } catch (error) {
     console.error('Error while calculating total license price:', error);

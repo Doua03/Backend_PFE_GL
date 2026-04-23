@@ -1,4 +1,5 @@
-const VisitedParking = require('../model/parkingvisited');
+const parkingVisitedRepository = require('../repositories/parkingvisited.repository');
+
 const mongoose = require('mongoose');
 
 exports.visit = async (req, res) => {
@@ -8,10 +9,10 @@ exports.visit = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(parkingId)) {
       return res.status(400).json({ message: 'Invalid parkingId' });
     }
-    const visit = new VisitedParking({ userId, parkingId });
-    await visit.save();
+    const visit = await parkingVisitedRepository.create({ userId, parkingId });
     console.log(visit);
     res.status(200).json({ message: 'Visit tracked successfully' });
+
   } catch (error) {
     console.error('Error tracking visit:', error);
     res.status(500).json({ message: 'Failed to track visit', error: error.message });
@@ -32,7 +33,8 @@ exports.latestVisited = async (req, res) => {
     const userObjectId = new mongoose.Types.ObjectId(userId);
 
     // Query the database for the latest visited places by the user
-    const latestVisitedPlaces = await VisitedParking.aggregate([
+    const latestVisitedPlaces = await parkingVisitedRepository.aggregate([
+
       { $match: { userId: userObjectId } },
       { $sort: { visitTimestamp: -1 } }, // Sort by visit timestamp in descending order
       {
@@ -79,7 +81,8 @@ exports.alllatestVisited = async (req, res) => {
     const userObjectId = new mongoose.Types.ObjectId(userId);
 
     // Query the database for the latest visited places by the user
-    const latestVisitedPlaces = await VisitedParking.aggregate([
+    const latestVisitedPlaces = await parkingVisitedRepository.aggregate([
+
       { $match: { userId: userObjectId } },
       { $sort: { visitTimestamp: -1 } }, // Sort by visit timestamp in descending order
       {

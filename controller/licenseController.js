@@ -1,9 +1,10 @@
-const License = require('../model/license');
+const licenseRepository = require('../repositories/license.repository');
+
 
 exports.addLicense = async (req, res) => {
   try {
     const { name, type, user, price, period, description } = req.body;
-    const license = new License({
+    await licenseRepository.create({
       name,
       type,
       user,
@@ -11,7 +12,7 @@ exports.addLicense = async (req, res) => {
       period,
       description
     });
-    await license.save();
+
     res.status(201).json({ message: 'License added successfully' });
   } catch (error) {
     console.error('Error adding license', error);
@@ -20,7 +21,8 @@ exports.addLicense = async (req, res) => {
 };
 exports.getlicensesS = async (req, res) => {
   try {
-    const licenses = await License.find({user:'Supervisor'}); // Sélectionnez uniquement les champs nécessaires
+    const licenses = await licenseRepository.findByUserType('Supervisor');
+
     res.status(200).json(licenses);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -28,7 +30,8 @@ exports.getlicensesS = async (req, res) => {
 };
 exports.getlicensesA = async (req, res) => {
   try {
-    const licenses = await License.find({user:'Admin'}); // Sélectionnez uniquement les champs nécessaires
+    const licenses = await licenseRepository.findByUserType('Admin');
+
     res.status(200).json(licenses);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -36,7 +39,8 @@ exports.getlicensesA = async (req, res) => {
 };
 exports.getlicenses = async (req, res) => {
   try {
-    const licenses = await License.find({}); // Sélectionnez uniquement les champs nécessaires
+    const licenses = await licenseRepository.findAll({});
+
     res.status(200).json(licenses);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -44,7 +48,8 @@ exports.getlicenses = async (req, res) => {
 };
 exports.getLicenseById = async (req, res) => {
   try {
-    const license = await License.findById(req.params.id);
+    const license = await licenseRepository.findById(req.params.id);
+
     if (!license) {
       return res.status(404).json({ msg: 'Parking not found' });
     
@@ -58,7 +63,8 @@ exports.getLicenseById = async (req, res) => {
 exports.updateLicense = async (req, res) => {
   const { name, type, period, price, description,user } = req.body;
   try {
-    let license = await License.findById(req.params.id);
+    let license = await licenseRepository.findById(req.params.id);
+
     if (!license) {
       return res.status(404).json({ msg: 'Parking not found' });
     }
@@ -82,13 +88,15 @@ exports.updateLicense = async (req, res) => {
 };
 exports.deleteLicense = async (req, res) => {
   try {
-    const license = await License.findById(req.params.id);
+    const license = await licenseRepository.findById(req.params.id);
+
 
     if (!license) {
       return res.status(404).json({ msg: 'License not found' });
     }
 
-    await License.deleteOne({ _id: req.params.id }); // Utilisez la méthode deleteOne pour supprimer le document
+    await licenseRepository.delete(req.params.id);
+
 
     res.json({ msg: 'License removed' });
   } catch (err) {

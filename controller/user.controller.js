@@ -1,8 +1,9 @@
 const UserService = require("../services/user.services");
 const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
-const UserModel = require('../model/user.model');
-const Parking = require('../model/parking.model'); // Import Parking model
+const userRepository = require('../repositories/user.repository');
+const parkingRepository = require('../repositories/parking.repository'); // Using parkingRepository for DIP
+
 const path = require('path');
 const config = require('../config/config');
 const jwt = require('jsonwebtoken');
@@ -21,10 +22,11 @@ exports.register = async(req,res,next)=>{
     const {username,email,password} = req.body;
     const verificationToken = jwt.sign({ email }, 'verificationSecret', { expiresIn: '1d' });
     const verificationLink = `${'http://192.168.207.75:3000'}/verify-email?token=${verificationToken}`;
-    const existingUser = await UserModel.findOne({ email });
+    const existingUser = await userRepository.findByEmail(email);
     if (existingUser) {
       return res.status(409).send('Email already exists');
     }
+
     await sendVerificationEmail(email, verificationLink);
     const successRes = await UserService.registerUser(username,email,password);
     res.json({status:true,success:"Un email de vérification a été envoyé. Veuillez vérifier votre boîte de réception."});
@@ -96,10 +98,11 @@ exports.resetPassword = async (req, res) => {
     const { email, newPassword } = req.body;
 
     // Vérifier si l'utilisateur existe
-    const user = await UserModel.findOne({ email });
+    const user = await userRepository.findByEmail(email);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+
 
     // Vérifier si le nouveau mot de passe est valide
     if (!newPassword) {
@@ -128,10 +131,11 @@ exports.updateUser = async (req, res, next) => {
     const { email } = req.body;
 
     // Vérifier si l'utilisateur existe
-    const user = await UserModel.findOne({ email });
+    const user = await userRepository.findByEmail(email);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+
 
     // Extraire les nouvelles données à partir du corps de la requête
     const { username, newEmail, newPassword, numtel } = req.body;
@@ -162,13 +166,15 @@ exports.deleteAccount = async (req, res) => {
     const { email } = req.body;
 
     // Vérifier si l'utilisateur existe
-    const user = await UserModel.findOne({ email });
+    const user = await userRepository.findByEmail(email);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
+
     // Supprimer l'utilisateur de la base de données
-    await UserModel.deleteOne({ email });
+    await userRepository.delete(user._id);
+
 
     res.status(200).json({ status: true, message: "User account deleted successfully" });
   } catch (error) {
@@ -201,7 +207,8 @@ exports.addVehicle = async (req, res) => {
 exports.getUserVehicles = async (req, res) => {
   try {
     const { userId } = req.query; // Assurez-vous que l'ID de l'utilisateur est correctement extrait de la requête
-    const user = await UserModel.findById(userId).populate('vehicles'); // Utilisez correctement l'ID de l'utilisateur pour la recherche
+    const user = await userRepository.findById(userId); // Population handled in model or repository
+
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -218,10 +225,11 @@ exports.deleteVehicle = async (req, res) => {
   try {
     const { userId, num } = req.query; // Utiliser req.query pour obtenir les paramètres de l'URL
 
-    const user = await UserModel.findById(userId);
+    const user = await userRepository.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
+
 
     const vehicleIndex = user.vehicles.findIndex(vehicle => vehicle.num === num);
     if (vehicleIndex === -1) {
@@ -237,10 +245,10 @@ exports.deleteVehicle = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
-exports.list = async (req, res) => {
   try {
-      const user = await UserModel.find({}).exec();
+      const user = await userRepository.findAll();
       res.json(user);
+
   } catch (error) {
       console.error("Error while fetching admins:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -251,11 +259,12 @@ exports.delete = async (req, res) => {
       if (!ObjectId.isValid(req.params.userId))
           return res.status(400).send(`No record with given id : ${req.params.userId}`);
 
-      const deletedUser = await UserModel.findOneAndDelete({ _id: req.params.userId });
+      const deletedUser = await userRepository.delete(req.params.userId);
       if (!deletedUser) {
           return res.status(404).send(`User not found with ID: ${req.params.userId}`);
       }
       res.json(deletedUser);
+
   } catch (error) {
       console.error("Error while deleting user:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -290,7 +299,8 @@ exports.addCreditCard = async (req, res) => {
 exports.getUserCreditCard = async (req, res) => {
   try {
     const { userId } = req.query; // Assurez-vous que l'ID de l'utilisateur est correctement extrait de la requête
-    const user = await UserModel.findById(userId).populate('payment'); // Utilisez correctement l'ID de l'utilisateur pour la recherche
+    const user = await userRepository.findById(userId);
+
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -307,10 +317,11 @@ exports.deleteCreditCard = async (req, res) => {
   try {
     const { userId, cardNumber } = req.query; // Utiliser req.query pour obtenir les paramètres de l'URL
 
-    const user = await UserModel.findById(userId);
+    const user = await userRepository.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
+
 
     const cardIndex = user.payment.findIndex(card => card.cardNumber === cardNumber);
     if (cardIndex === -1) {
@@ -327,7 +338,8 @@ exports.deleteCreditCard = async (req, res) => {
   }};
   exports.getUserCount = async (req, res) => {
     try {
-      const userCount = await UserModel.countDocuments();
+    const userCount = await userRepository.count();
+
       res.status(200).json({ userCount });
     } catch (error) {
       console.error(error);
