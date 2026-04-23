@@ -2,6 +2,7 @@ const Parking = require('../model/parking.model');
 const supervisorModel = require('../model/supervisor');
 const adminModel = require('../model/admin');
 const SupervisorService = require("../services/supervisor.services");
+const ParkingFactory = require('../services/ParkingFactory'); // Import the ParkingFactory
 
 exports.uploadImage = (req, res, next) => {
   if (!req.file) {
@@ -46,15 +47,20 @@ exports.addParkingData = async (req, res) => {
   }
 };
 
+//AddParking method with ParkingFactory
 exports.addParking = async (req, res) => {
   try {
-    const { userId, name, longitude, latitude, admin, pricing, floors, description, imageUrl } = req.body;
+    const { userId, name, longitude, latitude,
+            admin, pricing, floors,
+            description, imageUrl } = req.body;
 
-    const newParking = await SupervisorService.addParking(userId, name, longitude, latitude, admin, pricing, floors, description, imageUrl);
-
+    const newParking = ParkingFactory.createFullParking(
+      userId, name, longitude, latitude,
+      admin, pricing, floors, description, imageUrl
+    );
+    await newParking.save();
     res.status(201).json(newParking);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
