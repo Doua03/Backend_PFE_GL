@@ -1,13 +1,10 @@
 // ticket.controller.js
 
-const Ticket = require('../model/ticket');
-const Parking = require('../model/parking.model');
-const Admin = require('../model/admin');
+const TicketService = require('../services/ticket.services');
 
 exports.createTicket = async (req, res) => {
   try {
-    const ticket = new Ticket(req.body);
-    const savedTicket = await ticket.save();
+    const savedTicket = await TicketService.createTicket(req.body);
     res.status(201).json(savedTicket);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -16,7 +13,7 @@ exports.createTicket = async (req, res) => {
 
 exports.getTicketById = async (req, res) => {
   try {
-    const ticket = await Ticket.findById(req.params.id);
+    const ticket = await TicketService.getTicketById(req.params.id);
     if (!ticket) {
       return res.status(404).json({ message: 'Ticket not found' });
     }
@@ -28,8 +25,7 @@ exports.getTicketById = async (req, res) => {
 
 exports.getTicketsByUserId = async (req, res) => {
   try {
-    const userId = req.params.userId;
-    const tickets = await Ticket.find({ userId });
+    const tickets = await TicketService.getTicketsByUserId(req.params.userId);
     res.status(200).json(tickets);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -38,8 +34,7 @@ exports.getTicketsByUserId = async (req, res) => {
 
 exports.getTicketsByParkingId = async (req, res) => {
   try {
-    const parkingId = req.params.parkingId;
-    const tickets = await Ticket.find({ parkingId });
+    const tickets = await TicketService.getTicketsByParkingId(req.params.parkingId);
     res.status(200).json(tickets);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -48,23 +43,13 @@ exports.getTicketsByParkingId = async (req, res) => {
 
 exports.getTicketsForAdminParking = async (req, res) => {
   try {
-    const adminEmail = req.params.adminEmail;
-
-    const admin = await Admin.findOne({ email: adminEmail });
-    if (!admin) {
-      return res.status(404).json({ message: 'Admin not found with this email' });
-    }
-
-    const parking = await Parking.findOne({ admin: admin.email });
-    if (!parking) {
-      return res.status(404).json({ message: 'Parking not found for this admin' });
-    }
-
-    const tickets = await Ticket.find({ parkingId: parking._id }).sort({ _id: -1 }); // Sort by _id in descending order
-
+    const tickets = await TicketService.getTicketsForAdminParking(req.params.adminEmail);
     res.status(200).json(tickets);
   } catch (error) {
+    if (error.message.includes('not found')) {
+        return res.status(404).json({ message: error.message });
+    }
     console.error('Error getting tickets for admin parking:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
-};
+};

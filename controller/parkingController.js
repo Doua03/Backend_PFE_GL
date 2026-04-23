@@ -1,6 +1,5 @@
-const Parking = require('../model/parking.model');
+const ParkingService = require('../services/parking.services');
 const supervisorModel = require('../model/supervisor');
-const adminModel = require('../model/admin');
 const SupervisorService = require("../services/supervisor.services");
 
 exports.uploadImage = (req, res, next) => {
@@ -14,44 +13,18 @@ exports.uploadImage = (req, res, next) => {
 exports.addParkingData = async (req, res) => {
   try {
     const { parkingId, floors, selectedPlacesCount } = req.body;
-
-    const parking = await Parking.findById(parkingId);
-    if (!parking) {
-      return res.status(404).json({ error: 'Parking not found' });
-    }
-
-    floors.forEach(floor => {
-      const floorIndex = floor.floorIndex;
-      const rows=floor.rows;
-      const columns=floor.columns
-      const parkingData = floor.parkingData;
-      const places = floor.places.map(place => ({
-        floorIndex,
-        row: place.row,
-        column: place.column,
-        name: place.name,
-        status: place.status,
-        code: place.code,
-        battery: place.battery
-      }));
-
-      parking.floors.push({ floorIndex,rows,columns, parkingData, places });
-    });
-
-    parking.selectedPlacesCount = selectedPlacesCount;
-    await parking.save();
+    await ParkingService.addParkingData(parkingId, floors, selectedPlacesCount);
     res.status(201).json({ message: 'Parking data added successfully' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const statusCode = error.message === 'Parking not found' ? 404 : 500;
+    res.status(statusCode).json({ error: error.message });
   }
 };
 
 exports.addParking = async (req, res) => {
   try {
     const { userId, name, longitude, latitude, admin, pricing, floors, description, imageUrl } = req.body;
-
     const newParking = await SupervisorService.addParking(userId, name, longitude, latitude, admin, pricing, floors, description, imageUrl);
-
     res.status(201).json(newParking);
   } catch (error) {
     console.error(error);
@@ -71,8 +44,7 @@ exports.getParkings = async (req, res) => {
        return res.status(404).json({ message: 'Supervisor not found' });
      }
 
-     const parkings = await Parking.find({ supervisor: userId });
- 
+     const parkings = await ParkingService.getParkingsBySupervisorId(userId); 
      res.status(200).json(parkings);
   } catch (error) {
      console.error(error);
@@ -83,8 +55,8 @@ exports.getParkings = async (req, res) => {
 exports.deleteParking = async (req, res) => {
   try {
     const parkingId = req.params.id;
-    const deletedParking = await Parking.findByIdAndDelete(parkingId);
-    if (!deletedParking) {
+    const success = await ParkingService.deleteParking(parkingId);
+    if (!success) {
       return res.status(404).json({ error: 'Parking not found' });
     }
     res.status(200).json({ message: 'Parking deleted successfully' });
@@ -95,7 +67,7 @@ exports.deleteParking = async (req, res) => {
 
 exports.getParkingById = async (req, res) => {
   try {
-    const parking = await Parking.findById(req.params.id);
+    const parking = await ParkingService.getParkingById(req.params.id);
     if (!parking) {
       return res.status(404).json({ msg: 'Parking not found' });
     }
@@ -106,47 +78,15 @@ exports.getParkingById = async (req, res) => {
 };
 
 exports.updateParking = async (req, res) => {
-  const { name, longitude, latitude, admin, pricing, floors, description, selectedPlacesCount } = req.body;
   try {
-    let parking = await Parking.findById(req.params.id);
-    if (!parking) {
+    const updatedParking = await ParkingService.updateParking(req.params.id, req.body, req.file);
+    if (!updatedParking) {
       return res.status(404).json({ msg: 'Parking not found' });
     }
-
-    parking.name = name;
-    parking.longitude = longitude;
-    parking.latitude = latitude;
-    parking.admin = admin;
-    parking.pricing = pricing;
-    parking.floors = floors;
-    parking.description = description;
-    parking.selectedPlacesCount = selectedPlacesCount;
-
-    if (req.file) {
-      parking.imageUrl = req.file.path;
-    }
-
-    await parking.save();
-
     res.json({ message: 'Parking updated successfully' });
   } catch (error) {
      res.status(500).json({ error: error.message });
   }
-};
-
-function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) *
-      Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c;
-  return distance;
 };
 
 exports.getParkingsNearby = async (req, res) => {
@@ -156,59 +96,33 @@ exports.getParkingsNearby = async (req, res) => {
       return res.status(400).json({ error: 'Latitude and longitude are required' });
     }
 
-    const parkings = await Parking.find({}, 'id name longitude latitude distance pricing imageUrl selectedPlacesCount');
-
-    const parkingsWithDistance = parkings.map(parking => {
-      const distance = calculateDistance(
-        parseFloat(lat),
-        parseFloat(lng),
-        parseFloat(parking.latitude),
-        parseFloat(parking.longitude)
-      );
-      return { ...parking._doc, distance };
-    });
-
-    parkingsWithDistance.sort((a, b) => a.distance - b.distance);
-
-    const nearestParkings = parkingsWithDistance.slice(0, 5);
-
+    const nearestParkings = await ParkingService.getParkingsNearby(lat, lng);
     res.status(200).json(nearestParkings);
   } catch (error) {
     console.error('Error in /parking/getParkinsNearby:', error);
     res.status(500).json({ error: error.message });
   }
 };
+
 exports.getParkingPlaces = async (req, res) => {
   try {
-    const parkingId = req.params.parkingId;
-    const parking = await Parking.findById(parkingId);
-    if (!parking) {
-      return res.status(404).json({ error: 'Parking not found' });
-    }
-
-    const places = parking.floors.flatMap(floor => floor.places);
+    const places = await ParkingService.getParkingPlaces(req.params.parkingId);
     res.status(200).json(places);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    const statusCode = error.message === 'Parking not found' ? 404 : 500;
+    res.status(statusCode).json({ error: error.message });
   }
 };
-// Assuming your data structure in the backend has parking places with a name field
+
 exports.getParkingFloors = async (req, res) => {
   try {
-    const parkingId = req.params.parkingId;
-    const parking = await Parking.findById(parkingId);
-    if (!parking) {
-      return res.status(404).json({ error: 'Parking not found' });
-    }
-
-    res.status(200).json({ floors: parking.floors });
+    const floors = await ParkingService.getParkingFloors(req.params.parkingId);
+    res.status(200).json({ floors });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    const statusCode = error.message === 'Parking not found' ? 404 : 500;
+    res.status(statusCode).json({ error: error.message });
   }
 };
-
 
 exports.getParkingByName = async (req, res) => {
   try {
@@ -216,39 +130,37 @@ exports.getParkingByName = async (req, res) => {
     if (!name) {
       return res.status(400).json({ error: 'Parking name is required' });
     }
-
-    // Perform a case-insensitive search for parking by name
-    const parkings = await Parking.find({ name: { $regex: new RegExp(name, 'i') } });
+    const parkings = await ParkingService.getParkingByName(name);
     res.status(200).json(parkings);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal server error' });}};
-    exports.searchParkings = async (req, res) => {
-      try {
-        const { name } = req.query;
-        if (!name) {
-          return res.status(400).json({ error: 'Parking name is required' });
-        }
-    
-        // Effectuer une recherche insensible à la casse des parkings par nom
-        const parkings = await Parking.find({ name: { $regex: new RegExp(name, 'i') } });
-        res.status(200).json(parkings);
-      } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal server error' });
-      }
-    };
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+exports.searchParkings = async (req, res) => {
+  try {
+    const { name } = req.query;
+    if (!name) {
+      return res.status(400).json({ error: 'Parking name is required' });
+    }
+    const parkings = await ParkingService.getParkingByName(name);
+    res.status(200).json(parkings);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
 
 exports.getParkingCount = async (req, res) => {
   try {
-    const parkingCount = await Parking.countDocuments();
+    const parkingCount = await ParkingService.getParkingCount();
     res.status(200).json({ parkingCount });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
-
 
 exports.getParkingsBySupervisorId = async (req, res) => {
   try {
@@ -262,7 +174,7 @@ exports.getParkingsBySupervisorId = async (req, res) => {
       return res.status(404).json({ message: 'Supervisor not found' });
     }
 
-    const parkings = await Parking.find({ supervisor: supervisorId });
+    const parkings = await ParkingService.getParkingsBySupervisorId(supervisorId);
     res.status(200).json(parkings);
   } catch (error) {
     console.error(error);
@@ -270,57 +182,16 @@ exports.getParkingsBySupervisorId = async (req, res) => {
   }
 };
 
-
 exports.getParkingsByAdminEmail = async (req, res) => {
   try {
     const { adminEmail } = req.query;
     if (!adminEmail) {
       return res.status(400).json({ error: 'Admin email is required' });
     }
-
-    // Find the user by email
-    const adminUser = await adminModel.findOne({ email: adminEmail });
-    if (!adminUser) {
-      return res.status(404).json({ error: 'Admin not found' });
-    }
-
-    // Find parkings associated with the admin
-    const parkings = await Parking.findOne({ admin: adminUser.email });
-
-    // Check if parkings exist and have a 'name' property
-    if (!parkings || !parkings.name) {
-      return res.status(404).json({ error: 'Parking not found' });
-    }
-
-    const parkingName = parkings.name;
-    console.log(parkingName);
-
-    res.status(200).json(parkingName);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
-
-exports.getParkingsByAdminEmail = async (req, res) => {
-  try {
-    const { adminEmail } = req.query;
-    if (!adminEmail) {
-      return res.status(400).json({ error: 'Admin email is required' });
-    }
-
-    // Find the user by email
-    const adminUser = await adminModel.findOne({ email: adminEmail });
-    if (!adminUser) {
-      return res.status(404).json({ error: 'Admin not found' });
-    }
-
-    // Find parkings associated with the admin
-    const parkings = await Parking.find({ admin: adminUser.email });
-
+    const parkings = await ParkingService.getParkingsByAdminEmail(adminEmail);
     res.status(200).json(parkings);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    const statusCode = error.message === 'Admin not found' ? 404 : 500;
+    res.status(statusCode).json({ error: error.message });
   }
 };
