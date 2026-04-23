@@ -1,4 +1,5 @@
 const Parking = require('../model/parking.model');
+const ParkingBuilder = require('./ParkingBuilder');
 const SupervisorModel = require('../model/supervisor');
 const jwt = require('jsonwebtoken');
 const Admin = require('../model/admin');
@@ -34,29 +35,26 @@ class SupervisorService {
 
   static async addParking(userId, name, longitude, latitude, admin, pricing, floors, description, imageUrl) {
     try {
-      console.log('Supervisor ID:', userId);
       const supervisor = await SupervisorModel.findById(userId);
-      
+
       if (!supervisor) {
         throw new Error('Supervisor not found');
       }
-  
-      const newParking = new Parking({
-        name,
-        longitude,
-        latitude,
-        admin,
-        supervisor: userId,
-        pricing,
-        description,
-        imageUrl,
-        floors,
-        selectedPlacesCount: 0
-      });
-  
+
+      const newParking = new ParkingBuilder()
+        .setName(name)
+        .setLocation(longitude, latitude)
+        .setAdmin(admin)
+        .setSupervisor(userId)
+        .setPricing(pricing)
+        .setFloors(floors)
+        .setDescription(description)
+        .setImageUrl(imageUrl)
+        .build();
+
       const savedParking = await newParking.save();
-      
-      return { 
+
+      return {
         message: 'Parking added successfully',
         parkingId: savedParking._id
       };
