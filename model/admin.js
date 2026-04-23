@@ -1,91 +1,43 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
-const db = require('../config/db');
-const Schema = mongoose.Schema;
+const UserModel = require('./user.model');
+const { Schema } = mongoose;
 
 const adminSchema = new Schema({
-   // Add license attribute
-   license: {
+  license: {
     type: {
       type: String,
-      default: '' // Add default values or leave it empty initially
+      default: ''
     },
     period: {
       type: String,
-      default: null // Add default values or leave it null initially
+      default: null
     },
     price: {
-      type:Number,
+      type: Number,
       default: 0
     },
-  },
-  email: {
-      type: String,
-      required: true,
-      unique: true
-  },
-  password: {
-      type: String,
-      required: true
   },
   supervisor: {
     type: Schema.Types.ObjectId,
     ref: 'Supervisor',
     required: true,
   },
-  session: {
-      type: String,
-      enum: ['Superadmin', 'Supervisor', 'Admin'],
-      default: 'Admin'
-  },
-  name: {
+  entreprise: {
     type: String,
-    default:''
-},
-telephone: {
-  type: Number,
-  default:''
-
-},
-entreprise: {
-  type: String,
-  default:''
-
-},
-postcode: {
-  type: Number,
-  default:''
-
-},
-job: {
-  type: String,
-  default:''
-
-},
+    default: ''
+  },
+  postcode: {
+    type: Number,
+    default: null
+  },
+  job: {
+    type: String,
+    default: ''
+  },
 });
 
-adminSchema.pre('save', async function(next) {
-  try {
-      if (!this.isModified('password')) {
-          return next();
-      }
-      const salt = await bcrypt.genSalt(10);
-      const hash = await bcrypt.hash(this.password, salt);
-      this.password = hash;
-      next();
-  } catch (error) {
-      next(error);
-  }
-});
+// Utilisation du Principe de Substitution de Liskov (LSP)
+// Admin est un sous-type de User, il hérite de ses méthodes (comparePassword, etc.)
+const AdminModel = UserModel.discriminator('Admin', adminSchema);
 
-adminSchema.methods.comparePassword = async function(candidatePassword) {
-  try {
-      return await bcrypt.compare(candidatePassword, this.password);
-  } catch (error) {
-      return false;
-  }
-};
-
-const adminModel = db.model('Admin', adminSchema, 'admin');
-
-module.exports = adminModel;
+module.exports = AdminModel;
