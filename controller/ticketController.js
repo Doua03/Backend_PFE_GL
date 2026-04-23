@@ -1,22 +1,24 @@
 // ticket.controller.js
 
-const Ticket = require('../model/ticket');
+const TicketService = require('../services/ticket.services');
 const Parking = require('../model/parking.model');
 const Admin = require('../model/admin');
 
+
 exports.createTicket = async (req, res) => {
   try {
-    const ticket = new Ticket(req.body);
-    const savedTicket = await ticket.save();
+    // Utilisation du patron GRASP Creator via le service
+    const savedTicket = await TicketService.createTicket(req.body);
     res.status(201).json(savedTicket);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
 
+
 exports.getTicketById = async (req, res) => {
   try {
-    const ticket = await Ticket.findById(req.params.id);
+    const ticket = await TicketService.findById(req.params.id);
     if (!ticket) {
       return res.status(404).json({ message: 'Ticket not found' });
     }
@@ -26,25 +28,28 @@ exports.getTicketById = async (req, res) => {
   }
 };
 
+
 exports.getTicketsByUserId = async (req, res) => {
   try {
     const userId = req.params.userId;
-    const tickets = await Ticket.find({ userId });
+    const tickets = await TicketService.getTicketsByUserId(userId);
     res.status(200).json(tickets);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+
 exports.getTicketsByParkingId = async (req, res) => {
   try {
     const parkingId = req.params.parkingId;
-    const tickets = await Ticket.find({ parkingId });
+    const tickets = await TicketService.getTicketsByParkingId(parkingId);
     res.status(200).json(tickets);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 exports.getTicketsForAdminParking = async (req, res) => {
   try {
@@ -60,7 +65,8 @@ exports.getTicketsForAdminParking = async (req, res) => {
       return res.status(404).json({ message: 'Parking not found for this admin' });
     }
 
-    const tickets = await Ticket.find({ parkingId: parking._id }).sort({ _id: -1 }); // Sort by _id in descending order
+    const tickets = await TicketService.getTicketsByParkingId(parking._id); // Use service helper
+
 
     res.status(200).json(tickets);
   } catch (error) {
