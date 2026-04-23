@@ -21,6 +21,8 @@ const upload = multer({ storage: storage,});
 router.post('/registration', UserController.register);
 router.get('/verify-email', UserController.verifyEmail);
 router.post('/login', UserController.login);
+router.get('/auth/facebook', UserController.loginFacebook);
+router.get('/auth/facebook/callback', UserController.loginFacebookCallback);
 router.post('/reset-password', UserController.resetPassword);
 router.put('/update', UserController.updateUser);
 router.delete('/delete_account', UserController.deleteAccount);

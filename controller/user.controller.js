@@ -1,4 +1,7 @@
 const UserService = require("../services/user.services");
+const AuthContext = require("../services/AuthContext");
+const EmailPasswordStrategy = require("../services/EmailPasswordStrategy");
+const FacebookAuthStrategy = require("../services/FacebookAuthStrategy");
 const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
 const UserModel = require('../model/user.model');
@@ -70,25 +73,19 @@ const sendVerificationEmail = async (toEmail, verificationLink) => {
     console.error('Error sending verification email:', error);
   }
 };
-exports.login = async(req,res,next)=>{
-  try{
-    const {email,password} = req.body;
-    const user = await UserService.checkuser(email);
-    console.log("............user..........",user);
-    if(!user){
-      return res.status(401).json({ message: "Email or password is incorrect" });
-    }
-    const isMatch = await user.comparePassword(password);
-    if(!isMatch){
-      return res.status(401).json({ message: "Email or password is incorrect" });
-    }
-    let tokenData = { _id: user._id, email: user.email, username: user.username };
-    const token = await UserService.generateToken(tokenData, "secretKey", '1h');
-    res.status(200).json({ status: true, token: token });
-  } catch(error){
-    console.error(error);
-    res.status(500).json({ message: "Internal server error" });
-  }
+exports.login = async (req, res, next) => {
+  const context = new AuthContext(new EmailPasswordStrategy());
+  await context.authenticate(req, res, next);
+};
+
+exports.loginFacebook = (req, res, next) => {
+  const context = new AuthContext(new FacebookAuthStrategy());
+  context.authenticate(req, res, next);
+};
+
+exports.loginFacebookCallback = (req, res, next) => {
+  const strategy = new FacebookAuthStrategy();
+  strategy.handleCallback(req, res, next);
 };
 
 exports.resetPassword = async (req, res) => {
