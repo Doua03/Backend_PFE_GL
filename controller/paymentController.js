@@ -35,8 +35,7 @@ exports.Add = async (req, res) => {
 };
 
 exports.Verify = async (req, res) => {
-// Your existing code...
-try {
+    try {
     const response = await axios.get(url, {
         headers: {
             'Content-Type': 'application/json',

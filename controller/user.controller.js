@@ -45,8 +45,6 @@ exports.verifyEmail = async (req, res, next) => {
     const decodedToken = jwt.verify(token, 'verificationSecret');
     const { email } = decodedToken;
 
-    // Ici, tu peux ajouter le code pour marquer l'e-mail de l'utilisateur comme vérifié dans ta base de données
-
     // Une fois l'e-mail de l'utilisateur vérifié, tu peux rediriger l'utilisateur vers une page de connexion
     res.redirect('/login');
   } catch (error) {
@@ -70,6 +68,7 @@ const sendVerificationEmail = async (toEmail, verificationLink) => {
     console.error('Error sending verification email:', error);
   }
 };
+
 exports.login = async(req,res,next)=>{
   try{
     const {email,password} = req.body;

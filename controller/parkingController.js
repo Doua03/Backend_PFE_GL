@@ -2,6 +2,7 @@ const Parking = require('../model/parking.model');
 const supervisorModel = require('../model/supervisor');
 const adminModel = require('../model/admin');
 const SupervisorService = require("../services/supervisor.services");
+const ParkingFactory = require('../services/parking.factory');
 
 exports.uploadImage = (req, res, next) => {
   if (!req.file) {
@@ -59,26 +60,18 @@ exports.addParking = async (req, res) => {
   }
 };
 
+//Fonction modifiée avec Strategy Pattern
 exports.getParkings = async (req, res) => {
   try {
-     const { userId } = req.query;
-     if (!userId) {
-       return res.status(400).json({ message: 'User ID is required' });
-     }
-
-     const supervisor = await supervisorModel.findById(userId);
-     if (!supervisor) {
-       return res.status(404).json({ message: 'Supervisor not found' });
-     }
-
-     const parkings = await Parking.find({ supervisor: userId });
- 
-     res.status(200).json(parkings);
+    const result = await ParkingFactory.getParkings(req.query);
+    res.status(200).json(result);
   } catch (error) {
-     console.error(error);
-     res.status(500).json({ message: 'Internal server error' });
+    const status = error.message.includes('not found') ? 404
+                 : error.message.includes('required') ? 400
+                 : 500;
+    res.status(status).json({ message: error.message });
   }
- };
+};
 
 exports.deleteParking = async (req, res) => {
   try {
@@ -134,50 +127,6 @@ exports.updateParking = async (req, res) => {
   }
 };
 
-function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) *
-      Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c;
-  return distance;
-};
-
-exports.getParkingsNearby = async (req, res) => {
-  try {
-    const { lat, lng } = req.query;
-    if (!lat || !lng) {
-      return res.status(400).json({ error: 'Latitude and longitude are required' });
-    }
-
-    const parkings = await Parking.find({}, 'id name longitude latitude distance pricing imageUrl selectedPlacesCount');
-
-    const parkingsWithDistance = parkings.map(parking => {
-      const distance = calculateDistance(
-        parseFloat(lat),
-        parseFloat(lng),
-        parseFloat(parking.latitude),
-        parseFloat(parking.longitude)
-      );
-      return { ...parking._doc, distance };
-    });
-
-    parkingsWithDistance.sort((a, b) => a.distance - b.distance);
-
-    const nearestParkings = parkingsWithDistance.slice(0, 5);
-
-    res.status(200).json(nearestParkings);
-  } catch (error) {
-    console.error('Error in /parking/getParkinsNearby:', error);
-    res.status(500).json({ error: error.message });
-  }
-};
 exports.getParkingPlaces = async (req, res) => {
   try {
     const parkingId = req.params.parkingId;
@@ -209,36 +158,6 @@ exports.getParkingFloors = async (req, res) => {
   }
 };
 
-
-exports.getParkingByName = async (req, res) => {
-  try {
-    const { name } = req.query;
-    if (!name) {
-      return res.status(400).json({ error: 'Parking name is required' });
-    }
-
-    // Perform a case-insensitive search for parking by name
-    const parkings = await Parking.find({ name: { $regex: new RegExp(name, 'i') } });
-    res.status(200).json(parkings);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal server error' });}};
-    exports.searchParkings = async (req, res) => {
-      try {
-        const { name } = req.query;
-        if (!name) {
-          return res.status(400).json({ error: 'Parking name is required' });
-        }
-    
-        // Effectuer une recherche insensible à la casse des parkings par nom
-        const parkings = await Parking.find({ name: { $regex: new RegExp(name, 'i') } });
-        res.status(200).json(parkings);
-      } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal server error' });
-      }
-    };
-
 exports.getParkingCount = async (req, res) => {
   try {
     const parkingCount = await Parking.countDocuments();
@@ -248,28 +167,6 @@ exports.getParkingCount = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
-
-
-exports.getParkingsBySupervisorId = async (req, res) => {
-  try {
-    const { supervisorId } = req.params;
-    if (!supervisorId) {
-      return res.status(400).json({ message: 'Supervisor ID is required' });
-    }
-
-    const supervisor = await supervisorModel.findById(supervisorId);
-    if (!supervisor) {
-      return res.status(404).json({ message: 'Supervisor not found' });
-    }
-
-    const parkings = await Parking.find({ supervisor: supervisorId });
-    res.status(200).json(parkings);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
 
 exports.getParkingsByAdminEmail = async (req, res) => {
   try {
