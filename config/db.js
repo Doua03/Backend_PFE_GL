@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://bouazzadoua03:projetGL@ac-ybo6gbz-shard-00-00.cbpzvnx.mongodb.net:27017,ac-ybo6gbz-shard-00-01.cbpzvnx.mongodb.net:27017,ac-ybo6gbz-shard-00-02.cbpzvnx.mongodb.net:27017/?ssl=true&replicaSet=atlas-zet4eb-shard-0&authSource=admin&appName=Cluster0';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://wannassiimouadh:pathquest2026@cluster0.nfnilob.mongodb.net/';
 
 mongoose.connect(MONGO_URI);
 
