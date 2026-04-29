@@ -8,6 +8,20 @@ exports.createTicket = async (req, res) => {
   try {
     const ticket = new Ticket(req.body);
     const savedTicket = await ticket.save();
+
+    // Mise à jour des compteurs du parking après création du ticket
+    // OCL: occupiedPlacesCount + reservedPlacesCount <= totalPlaces
+    const parking = await Parking.findById(savedTicket.parkingId);
+    if (parking) {
+      const method = savedTicket.selectedMethod;
+      if (method === 'reserved') {
+        parking.reservedPlacesCount = (parking.reservedPlacesCount || 0) + 1;
+      } else {
+        parking.occupiedPlacesCount = (parking.occupiedPlacesCount || 0) + 1;
+      }
+      await parking.save(); // déclenche le hook pre('validate') → contrainte OCL vérifiée
+    }
+
     res.status(201).json(savedTicket);
   } catch (error) {
     res.status(400).json({ message: error.message });
