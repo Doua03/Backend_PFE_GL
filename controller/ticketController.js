@@ -1,13 +1,25 @@
 // ticket.controller.js
 
-const Ticket = require('../model/ticket');
-const Parking = require('../model/parking.model');
-const Admin = require('../model/admin');
+const Ticket = require("../model/ticket");
+const Parking = require("../model/parking.model");
+const Admin = require("../model/admin");
+const { preConditions } = require("../constraints/ticketConstraints");
 
 exports.createTicket = async (req, res) => {
   try {
+    // PRE-CONDITIONS: Validate data before creation
+    const preValidation = preConditions.validateAll(req.body);
+    if (!preValidation.isValid) {
+      return res.status(400).json({
+        message: preValidation.error,
+        constraint: preValidation.constraint,
+      });
+    }
+
+    // Create ticket
     const ticket = new Ticket(req.body);
     const savedTicket = await ticket.save();
+
     res.status(201).json(savedTicket);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -18,7 +30,7 @@ exports.getTicketById = async (req, res) => {
   try {
     const ticket = await Ticket.findById(req.params.id);
     if (!ticket) {
-      return res.status(404).json({ message: 'Ticket not found' });
+      return res.status(404).json({ message: "Ticket not found" });
     }
     res.status(200).json(ticket);
   } catch (error) {
@@ -52,19 +64,25 @@ exports.getTicketsForAdminParking = async (req, res) => {
 
     const admin = await Admin.findOne({ email: adminEmail });
     if (!admin) {
-      return res.status(404).json({ message: 'Admin not found with this email' });
+      return res
+        .status(404)
+        .json({ message: "Admin not found with this email" });
     }
 
     const parking = await Parking.findOne({ admin: admin.email });
     if (!parking) {
-      return res.status(404).json({ message: 'Parking not found for this admin' });
+      return res
+        .status(404)
+        .json({ message: "Parking not found for this admin" });
     }
 
-    const tickets = await Ticket.find({ parkingId: parking._id }).sort({ _id: -1 }); // Sort by _id in descending order
+    const tickets = await Ticket.find({ parkingId: parking._id }).sort({
+      _id: -1,
+    }); // Sort by _id in descending order
 
     res.status(200).json(tickets);
   } catch (error) {
-    console.error('Error getting tickets for admin parking:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Error getting tickets for admin parking:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
