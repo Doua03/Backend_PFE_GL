@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const db = require('../config/db');
 const Schema = mongoose.Schema;
+const { applyParkingConstraints } = require('../constraints/ocl.constraints');
 
 const parkingPlaceSchema = new Schema({
   floorIndex: String,
@@ -63,6 +64,9 @@ const parkingSchema = new Schema({
   occupiedPlacesCount: Number, // Utiliser le champ occupé calculé
   reservedPlacesCount: Number
 });
+
+// Apply OCL Constraints to the parking schema
+applyParkingConstraints(parkingSchema);
 
 const Parking = db.model('Parking', parkingSchema);
 
