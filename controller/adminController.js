@@ -148,6 +148,9 @@ exports.modifyLicense = async (req, res) => {
 
     res.status(200).send('Admin license updated successfully');
   } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(400).send(error.message);
+    }
     console.error('Error updating Admin license:', error);
     res.status(500).send('Internal Server Error');
   }

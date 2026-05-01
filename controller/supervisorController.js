@@ -187,6 +187,9 @@ exports.modifyLicense = async (req, res) => {
 
     res.status(200).send('Supervisor license updated successfully');
   } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(400).send(error.message);
+    }
     console.error('Error updating Supervisor license:', error);
     res.status(500).send('Internal Server Error');
   }

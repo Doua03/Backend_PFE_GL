@@ -14,14 +14,17 @@ const licenseSchema = new Schema({
   },
   user: {
     type:String,
+    enum: ['Admin', 'Supervisor'],
     required:true
   },
   price: {
     type:Number,
+    min: [1, 'Le prix doit être strictement positif'],
     required:true
   },
   period: {
     type:String,
+    enum: ['mensuel', 'annuel', 'monthly', 'yearly'],
     required:true
   },
   description: {

@@ -8,16 +8,29 @@ const adminSchema = new Schema({
    license: {
     type: {
       type: String,
-      default: '' // Add default values or leave it empty initially
+      default: ''
     },
     period: {
       type: String,
-      default: null // Add default values or leave it null initially
+      enum: {
+        values: ['monthly', 'yearly', 'mensuel', 'annuel', null],
+        message: 'La période de la licence est invalide'
+      },
+      default: null
     },
     price: {
-      type:Number,
-      default: 0
-    },
+      type: Number,
+      default: 0,
+      validate: {
+        validator: function(v) {
+          if (this.license && this.license.type && this.license.type !== '') {
+            return v > 0;
+          }
+          return v >= 0;
+        },
+        message: 'Le prix doit être strictement positif'
+      }
+    }
   },
   email: {
       type: String,
