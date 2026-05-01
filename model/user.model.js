@@ -6,11 +6,9 @@ const { Schema } = mongoose;
 const vehicleSchema = new Schema({
   type: {
     type: String,
-    
   },
   num: {
     type: String,
-    
   }
 });
 
@@ -44,9 +42,14 @@ const userSchema = new Schema({
     type: String,
     required: true,
   },
+  session: {
+    type: String,
+    enum: ['Superadmin', 'Supervisor', 'Admin', 'User'],
+    default: 'User'
+  },
   numtel:{
     type:Number,
-    default:""  
+    default:null
   },
   profilePhoto:{
     type:String,
@@ -54,7 +57,11 @@ const userSchema = new Schema({
   },
   vehicles:[vehicleSchema],
   payment:[paymentSchema],
-},{timestamps:true});
+}, { 
+  timestamps: true,
+  discriminatorKey: 'session', 
+  collection: 'users' 
+});
 
 userSchema.pre('save', async function(next) {
   try {
@@ -72,8 +79,7 @@ userSchema.pre('save', async function(next) {
 
 userSchema.methods.comparePassword = async function(userPassword) {
   try {
-    const isMatch = await bcrypt.compare(userPassword, this.password);
-    return isMatch;
+    return await bcrypt.compare(userPassword, this.password);
   } catch (error) {
     return false;
   }
@@ -81,7 +87,6 @@ userSchema.methods.comparePassword = async function(userPassword) {
 
 userSchema.methods.updateUser = async function(newData) {
   try {
-    // Mettre à jour les champs modifiables uniquement
     if (newData.username) this.username = newData.username;
     if (newData.email) this.email = newData.email;
     if (newData.password) {
@@ -91,7 +96,6 @@ userSchema.methods.updateUser = async function(newData) {
     }
     if (newData.numtel) this.numtel = newData.numtel;
 
-    // Enregistrer les modifications dans la base de données
     await this.save();
     return true;
   } catch (error) {
@@ -99,5 +103,5 @@ userSchema.methods.updateUser = async function(newData) {
   }
 }
 
-const UserModel = db.model('user', userSchema);
+const UserModel = db.model('User', userSchema);
 module.exports = UserModel;
