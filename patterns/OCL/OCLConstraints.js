@@ -1,23 +1,16 @@
 /**
  * OCL Constraints - Object Constraint Language
- *
  * Appliqué au: SupervisorController
  * Méthodes: logins (2 préconditions), addSupervisor (1 précondition)
- *
  * PRÉCONDITIONS: Conditions qui doivent être vraies AVANT l'exécution
  * POSTCONDITIONS: Conditions qui doivent être vraies APRÈS l'exécution
  * INVARIANTS: Conditions toujours vraies
- *
  * Référence: Object Constraint Language (OMG), Design by Contract
  */
-
 /**
  * OCL Constraints pour SupervisorController.logins()
- *
  * Pseudo-code OCL:
- *
  * context SupervisorController::logins(req: HttpRequest)
- *
  * -- PRÉCONDITIONS
  * pre: req.body.email <> null and req.body.email <> ''
  * pre: req.body.password <> null and req.body.password <> ''
