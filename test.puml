@@ -1,0 +1,10 @@
+﻿@startuml
+class User {
+  + username : String
+  + email : String
+}
+class Vehicule {
+  + type : String
+}
+User *-- Vehicule
+@enduml

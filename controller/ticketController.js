@@ -6,10 +6,16 @@ const Admin = require('../model/admin');
 
 exports.createTicket = async (req, res) => {
   try {
+    // Appel manuel de la validation OCL (Jihen Baccar)
+    Ticket.validateAll(req.body);
+
     const ticket = new Ticket(req.body);
     const savedTicket = await ticket.save();
     res.status(201).json(savedTicket);
   } catch (error) {
+    if (error.message.includes('OCL Violation')) {
+      return res.status(400).json({ status: 'OCL Violation', message: error.message });
+    }
     res.status(400).json({ message: error.message });
   }
 };

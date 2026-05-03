@@ -64,6 +64,27 @@ const parkingSchema = new Schema({
   reservedPlacesCount: Number
 });
 
+// OCL Constraint for Doua Bouazza
+// occupiedAndReservedNotExceedTotal: self.occupiedPlacesCount + self.reservedPlacesCount <= self.floors->collect(f | f.places)->size()
+parkingSchema.pre('validate', function(next) {
+  let totalPhysicalPlaces = 0;
+  if (this.floors && this.floors.length > 0) {
+    this.floors.forEach(floor => {
+      if (floor.places) {
+        totalPhysicalPlaces += floor.places.length;
+      }
+    });
+  }
+
+  const occupied = this.occupiedPlacesCount || 0;
+  const reserved = this.reservedPlacesCount || 0;
+
+  if (occupied + reserved > totalPhysicalPlaces) {
+    return next(new Error(`OCL Violation (occupiedAndReservedNotExceedTotal): Total occupied and reserved places (${occupied + reserved}) exceeds physical capacity (${totalPhysicalPlaces}).`));
+  }
+  next();
+});
+
 const Parking = db.model('Parking', parkingSchema);
 
 // Mettre à jour les compteurs après chaque modification de place de parking

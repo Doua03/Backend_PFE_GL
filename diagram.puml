@@ -1,0 +1,104 @@
+﻿@startuml
+class Superadmin {
+  + email : String
+  + password : String
+  + session : String
+}
+class Supervisor {
+  + email : String
+  + password : String
+  + session : String
+  + name : String
+  + telephone : Number
+  + municipality : String
+  + jobpost : String
+}
+class Admin {
+  + email : String
+  + password : String
+  + session : String
+  + name : String
+  + telephone : Number
+  + entreprise : String
+  + postcode : Number
+  + job : String
+}
+class User {
+  + username : String
+  + email : String
+  + password : String
+  + numTel : Number
+  + profilePhoto : String
+  + createdAt : Date
+  + updatedAt : Date
+}
+class Vehicule {
+  + type : String
+  + num : String
+}
+class Payment {
+  + cardHolder : String
+  + cardNumber : String
+  + cardExpiry : String
+  + cardCVC : String
+}
+class Ticket {
+  + selectedMethod : String
+  + selectedPlate : String
+  + money : Number
+  + arrivalDate : Date
+  + departureDate : Date
+  + parkingLatitude : Number
+  + parkingLongitude : Number
+  + code : String
+  + selectedPlace : Object
+}
+class Parking {
+  + name : String
+  + longitude : String
+  + latitude : String
+  + description : String
+  + imageUrl : String
+  + selectedPlacesCount : Number
+  + occupiedPlacesCount : Number
+  + reservedPlacesCount : Number
+}
+class ParkingFloor {
+  + floorIndex : String
+  + rows : Number
+  + columns : Number
+  + parkingData : Boolean[][]
+}
+class ParkingPlace {
+  + floorIndex : String
+  + row : Number
+  + column : Number
+  + name : String
+  + status : Boolean
+  + code : String
+  + battery : Number
+}
+class ParkingPricing {
+  + perHour : Number
+  + perDay : Number
+  + perMonth : Number
+  + perSixMonths : Number
+}
+class License {
+  + name : String
+  + type : String
+  + price : String
+  + period : String
+  + description : String
+}
+Superadmin "1" --> "0..*" Supervisor : geres
+Supervisor "1" --> "1" Admin : supervise
+Admin "1" --> "0..*" Parking : geres
+Admin "1" --> "1" License : souscrit
+User "1" *-- "1..*" Vehicule : possede
+User "1" o-- "1" Payment
+User "1" --> "0..*" Ticket
+Parking "1" *-- "1..*" ParkingFloor : contient
+ParkingFloor "1" o-- "0..*" ParkingPlace : contient
+Parking "1" *-- "1" ParkingPricing : garde
+@enduml
