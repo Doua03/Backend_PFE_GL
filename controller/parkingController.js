@@ -2,7 +2,8 @@ const Parking = require('../model/parking.model');
 const supervisorModel = require('../model/supervisor');
 const adminModel = require('../model/admin');
 const SupervisorService = require("../services/supervisor.services");
-const ParkingFactory = require('../services/ParkingFactory'); // Import the ParkingFactory
+const FullParkingCreator  = require('../services/FullParkingCreator');
+const EmptyParkingCreator = require('../services/EmptyParkingCreator');
 
 exports.uploadImage = (req, res, next) => {
   if (!req.file) {
@@ -47,21 +48,23 @@ exports.addParkingData = async (req, res) => {
   }
 };
 
-//AddParking method with ParkingFactory
+// ✅ Factory Method applied here
+// Controller chooses which Creator to use
+// but does NOT know how the Parking is built internally
 exports.addParking = async (req, res) => {
   try {
-    const { userId, name, longitude, latitude,
-            admin, pricing, floors,
-            description, imageUrl } = req.body;
+    // Choose the right Creator based on request data
+    const creator = req.body.floors && req.body.floors.length > 0
+      ? new FullParkingCreator()   // has floors → full parking
+      : new EmptyParkingCreator(); // no floors  → empty shell
 
-    const newParking = ParkingFactory.createFullParking(
-      userId, name, longitude, latitude,
-      admin, pricing, floors, description, imageUrl
-    );
-    await newParking.save();
+    // Creator handles building + saving
+    const newParking = await creator.addParking(req.body);
+
     res.status(201).json(newParking);
   } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
 
